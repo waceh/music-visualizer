@@ -2,11 +2,31 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import fs from 'node:fs/promises';
+import { syncBuiltinESMExports } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createCanvas } from '@napi-rs/canvas';
 import { renderJob, type Job } from '../server/render-job';
 const enabled=spawnSync('ffmpeg',['-version']).status===0 && spawnSync('ffprobe',['-version']).status===0;
+test('cancellation while reading analysis never starts encoding or restores rendering status',{skip:!enabled,timeout:10000},async(t)=>{
+ const dir=await mkdtemp(join(tmpdir(),'mtk-cancel-read-'));
+ const audio=join(dir,'audio.wav');
+ const job:Job={id:'cancel-read',dir,status:'preparing',progress:0,cancelled:false,output:join(dir,'out.mp4')};
+ const originalRead=fs.readFile;
+ const readMock=t.mock.method(fs,'readFile',async(...args:Parameters<typeof originalRead>)=>{
+  const data=await originalRead(...args);
+  if(String(args[0]).endsWith('analysis.pcm')){job.cancelled=true;job.status='cancelled';job.child?.kill('SIGTERM');}
+  return data;
+ });
+ syncBuiltinESMExports();
+ try{
+  assert.equal(spawnSync('ffmpeg',['-v','error','-f','lavfi','-i','sine=duration=0.1','-y',audio]).status,0);
+  await renderJob(job,audio,undefined,{shape:'ring',color:'#d7ff3f',background:'#101b22',sensitivity:1,title:''},320,180);
+  assert.equal(job.status,'cancelled');assert.equal(job.progress,0);assert.equal(job.child,undefined);
+  await assert.rejects(fs.access(job.output),{code:'ENOENT'});
+ }finally{readMock.mock.restore();syncBuiltinESMExports();await rm(dir,{recursive:true,force:true});}
+});
 test('exports all shapes with image, original audio, exact duration and playable MP4 codecs',{skip:!enabled,timeout:60000},async()=>{
  const dir=await mkdtemp(join(tmpdir(),'mtk-test-'));
  try{

@@ -4,7 +4,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
+import { checkFFmpeg } from './ffmpeg';
 import { renderJob, type Job } from './render-job';
 import { validateSettings } from './settings';
 const app=express();
@@ -12,16 +12,17 @@ const root=await mkdtemp(join(tmpdir(),'mtk-export-'));
 const upload=multer({dest:root,limits:{fileSize:512*1024*1024,files:2,fields:1,fieldSize:4096}});
 const jobs=new Map<string,Job>();
 let acceptingUpload=false;
-const available=spawnSync(process.env.MTK_FFMPEG || 'ffmpeg',['-version']).status===0;
+const availability=checkFFmpeg();
+const {available}=availability;
 app.use((req,res,next)=>{
   const origin=req.headers.origin;
   if(origin && !/^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(origin)) {res.status(403).json({error:'로컬 앱에서만 사용할 수 있습니다.'});return;}
   if(!/^(127\.0\.0\.1|localhost):\d+$/.test(req.headers.host || '')) {res.sendStatus(403);return;}
   next();
 });
-app.get('/api/health',(_req,res)=>res.json({available}));
+app.get('/api/health',(_req,res)=>res.json(availability));
 app.post('/api/exports',(req,res,next)=>{
-  if(!available){res.status(503).json({error:'FFmpeg를 설치한 뒤 앱을 다시 실행해 주세요.'});return;}
+  if(!available){res.status(503).json({error:availability.error});return;}
   if(acceptingUpload || [...jobs.values()].some(j=>j.status==='preparing'||j.status==='rendering')){res.status(409).json({error:'진행 중인 영상 출력을 먼저 완료하거나 취소해 주세요.'});return;}
   acceptingUpload=true;
   next();

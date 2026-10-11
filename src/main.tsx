@@ -4,6 +4,7 @@ import { bandEnergy, formatTime, presets, type PresetKey } from './presets';
 import './style.css';
 import { drawSpectrum } from './render';
 import { ExportPanel } from './ExportPanel';
+const pagesVersion = import.meta.env.MODE === 'pages';
 
 function App() {
   const audio = useRef<HTMLAudioElement>(null);
@@ -121,8 +122,8 @@ function App() {
       <label>비주얼라이저 문구<input aria-label="비주얼라이저 문구" maxLength={100} value={centerText} onChange={e => setCenterText(e.target.value)}/></label>
       <label>하단 제목<input aria-label="하단 제목" maxLength={200} value={videoTitle} onChange={e => setVideoTitle(e.target.value)}/></label>
     </div></section>
-    <ExportPanel audioFile={audioFile} imageFile={imageFile} settings={{ shape, color, sensitivity, background, title: videoTitle, logo, eyebrow, tagline, centerText }} onStart={() => audio.current?.pause()} />
-    <footer><span>MTK — MUSIC, THE KEY.</span><span>실시간 미리보기 · 로컬 MP4 출력</span></footer>
+    {pagesVersion ? <section className="export-panel" aria-label="영상 저장 안내"><div><h2>05 영상 저장</h2><p>웹 버전에서는 음악 미리보기와 디자인 편집을 사용할 수 있습니다. MP4 저장은 컴퓨터에서 실행하는 버전에서 지원합니다.</p></div></section> : <ExportPanel audioFile={audioFile} imageFile={imageFile} settings={{ shape, color, sensitivity, background, title: videoTitle, logo, eyebrow, tagline, centerText }} onStart={() => audio.current?.pause()} />}
+    <footer><span>MTK — MUSIC, THE KEY.</span><span>{pagesVersion ? '실시간 미리보기 · 브라우저에서 처리' : '실시간 미리보기 · 로컬 MP4 출력'}</span></footer>
     <audio ref={audio} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} onLoadedMetadata={() => setDuration(Number.isFinite(audio.current!.duration) ? audio.current!.duration : 0)} onTimeUpdate={() => setPosition(audio.current!.currentTime)} onError={() => setError('파일을 읽을 수 없습니다. 다른 오디오 파일을 선택해 주세요.')}/>
   </main>;
 }

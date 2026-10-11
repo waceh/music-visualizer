@@ -21,10 +21,12 @@ export async function renderJob(job: Job, audioPath: string, imagePath: string |
     await decodeExit;
     if(job.cancelled) return;
     const pcm = await readFile(pcmPath);
+    if(job.cancelled) return;
     const samples = new Float32Array(pcm.buffer,pcm.byteOffset,Math.floor(pcm.length/4));
     const duration=samples.length/22050;
     if(duration<=0 || duration>7200) throw new Error('0초 초과, 2시간 이하의 음악을 선택해 주세요.');
     const background=imagePath ? await loadImage(imagePath) : undefined;
+    if(job.cancelled) return;
     if(background && background.width*background.height>40000000) throw new Error('배경 이미지는 4천만 화소 이하로 선택해 주세요.');
     const canvas=createCanvas(width,height), ctx=canvas.getContext('2d');
     const frames=Math.ceil(duration*30);
@@ -62,5 +64,5 @@ export async function renderJob(job: Job, audioPath: string, imagePath: string |
   } catch(error) {
     job.child?.kill('SIGTERM');
     if(!job.cancelled){job.status='error';job.error=error instanceof Error?error.message:'영상 생성 실패';}
-  } finally {job.child=undefined;}
+  } finally {if(job.cancelled) job.status='cancelled';job.child=undefined;}
 }

@@ -6,6 +6,8 @@ React + TypeScript + Vite, Web Audio API 및 Canvas 2D로 만든 MTK 음악 비�
 
 Node.js 20.19+ 또는 22.12+와 FFmpeg(libx264 및 AAC 인코더 포함)가 필요합니다. macOS에서는 `brew install ffmpeg`로 설치할 수 있습니다. FFmpeg가 없으면 미리보기는 사용할 수 있지만 영상 출력은 비활성화됩니다.
 
+MP4 출력에는 영상과 소리를 압축할 인코더가 필요합니다. 이 프로젝트는 FFmpeg의 `libx264`(H.264 영상)와 `aac`(AAC 오디오)를 사용하며, 운영체제용 코덱 팩을 별도로 설치할 필요는 없습니다. 앱 시작 시 두 인코더의 포함 여부를 확인하고, FFmpeg 실행 실패 또는 필요한 인코더 누락 시 화면에 이유를 표시합니다. 현재 구조에서는 FFmpeg 없이 MP4를 출력할 수 없습니다.
+
 ```sh
 npm install
 npm run dev
@@ -52,6 +54,15 @@ npm run preview
 - 임시 업로드/분석 파일은 작업 종료 후 제거됩니다. 완료 MP4는 1시간 동안 다운로드할 수 있으며 이후 제거됩니다. 서버 종료 시 임시 작업을 정리합니다.
 - 출력 서버는 127.0.0.1:4174에만 바인딩됩니다. FFmpeg 경로를 지정하려면 `MTK_FFMPEG` 환경 변수를 사용합니다.
 - `npm run dev`가 두 서버를 함께 실행합니다. 빌드 결과 미리보기에는 별도 터미널에서 `npm run export:server`를 실행하고 `npm run preview`를 사용합니다. 정적 웹 호스팅만으로는 로컬 MP4 출력이 동작하지 않습니다.
+
+## GitHub Pages 배포
+
+기본 브랜치 `main`의 `docs` 폴더에 빌드 결과를 함께 저장합니다. 저장소의 Settings → Pages → Source를 **Deploy from a branch**, Branch를 **main**, 폴더를 **/docs**로 설정합니다. 배포 주소는 `https://waceh.github.io/music-visualizer/`입니다.
+
+- 웹 버전은 음악 재생, 시각화, 배경 및 문구 편집을 지원합니다. 파일은 브라우저에서 처리합니다.
+- GitHub Pages는 정적 호스팅이므로 로컬 FFmpeg 기반 MP4 출력은 지원하지 않습니다. 웹 버전에는 영상 저장 안내를 표시하며 출력 API를 호출하지 않습니다.
+
+변경 사항을 배포하려면 `npm run build:pages`로 `docs`를 갱신하고 소스와 `docs`를 함께 `main`에 커밋·푸시합니다. 로컬 확인은 `npm run preview -- --outDir docs`로 실행합니다. `.nojekyll` 파일은 정적 빌드 결과를 그대로 제공하도록 지정합니다.
 
 ## 후속 단계
 
